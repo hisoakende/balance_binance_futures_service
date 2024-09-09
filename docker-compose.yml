@@ -1,0 +1,37 @@
+version: '3.9'
+
+services:
+
+  event_processor:
+    build: ./event_processor
+    ports:
+      - "9100:9100"
+    restart: always
+    volumes:
+      - ./accounts_config.py:/usr/src/app/accounts_config.py
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://event_processor:9100/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    environment:
+      - HOST=event_processor
+      - PORT=9100
+      - BINANCE_HTTP_HOST=testnet.binancefuture.com
+      - BINANCE_WS_HOST=stream.binancefuture.com
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus:/etc/prometheus/
+    ports:
+      - "9090:9090"
+    restart: always
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://prometheus:9090/-/healthy" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      event_processor:
+        condition: service_healthy
